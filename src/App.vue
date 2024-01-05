@@ -1,79 +1,22 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { Card, Deck } from "../cards";
+import { Deck, deckBuilder } from "../cards";
 const deck = ref<Deck>([]);
 const playerHand = ref<Deck>([]);
 const dealerHand = ref<Deck>([]);
-function deckBuilder() {
-  for (let i = 2; i < 11; i++) {
-    let card: Card = {
-      kind: "heart",
-      value: i as typeof card.value,
-      name: i.toString() as typeof card.name,
-    };
-    deck?.value.push(card);
-  }
-  for (let i = 2; i < 11; i++) {
-    let card: Card = {
-      kind: "club",
-      value: i as typeof card.value,
-      name: i.toString() as typeof card.name,
-    };
-    deck?.value.push(card);
-  }
-  for (let i = 2; i < 11; i++) {
-    let card: Card = {
-      kind: "diamond",
-      value: i as typeof card.value,
-      name: i.toString() as typeof card.name,
-    };
-    deck?.value.push(card);
-  }
-  for (let i = 2; i < 11; i++) {
-    let card: Card = {
-      kind: "spade",
-      value: i as typeof card.value,
-      name: i.toString() as typeof card.name,
-    };
-    deck?.value.push(card);
-  }
-  // club special cards
-  deck.value?.push({ kind: "club", value: 10, name: "Queen" });
-  deck.value?.push({ kind: "club", value: 10, name: "Jack" });
-  deck.value?.push({ kind: "club", value: 10, name: "King" });
-  deck.value?.push({ kind: "club", value: 11, name: "Ace" });
-  // diamond special cards
-  deck.value?.push({ kind: "diamond", value: 10, name: "Queen" });
-  deck.value?.push({ kind: "diamond", value: 10, name: "Jack" });
-  deck.value?.push({ kind: "diamond", value: 10, name: "King" });
-  deck.value?.push({ kind: "diamond", value: 11, name: "Ace" });
-  // heart special cards
-  deck.value?.push({ kind: "heart", value: 10, name: "Queen" });
-  deck.value?.push({ kind: "heart", value: 10, name: "Jack" });
-  deck.value?.push({ kind: "heart", value: 10, name: "King" });
-  deck.value?.push({ kind: "heart", value: 11, name: "Ace" });
-  // spade special cards
-  deck.value?.push({ kind: "spade", value: 10, name: "Queen" });
-  deck.value?.push({ kind: "spade", value: 10, name: "Jack" });
-  deck.value?.push({ kind: "spade", value: 10, name: "King" });
-  deck.value?.push({ kind: "spade", value: 11, name: "Ace" });
-
-  // shuffle the deck
-  return deck.value.reduceRight(
-    (p, v, i, a) => (
-      (v = i ? ~~(Math.random() * (i + 1)) : i),
-      v - i ? ([deck.value[v], a[i]] = [deck.value[i], deck.value[v]]) : 0,
-      deck.value
-    ),
-    deck.value
-  );
-}
-deckBuilder();
+const started = ref(false);
+const stand = ref(false);
+const playerLost = ref<null | true | false>(null);
+const playerTotalCardValue = playerHand.value.reduce((a, b) => a + b.value, 0);
+deckBuilder(deck.value);
 
 function playerDrawCard() {
   let specificCard = deck.value[Math.floor(Math.random() * deck.value.length)];
   playerHand.value.push(specificCard);
   deck.value.splice(deck.value.indexOf(specificCard), 1);
+  if (playerTotalCardValue > 21) {
+    playerLost.value = true;
+  }
 }
 
 function dealerDrawCard() {
@@ -81,41 +24,51 @@ function dealerDrawCard() {
   dealerHand.value.push(specificCard);
   deck.value.splice(deck.value.indexOf(specificCard), 1);
 }
+
+function gameStart() {
+  dealerDrawCard();
+  playerDrawCard();
+  dealerDrawCard();
+  playerDrawCard();
+  started.value = !started.value;
+}
+
+function playerStand() {
+  stand.value = true;
+  while (dealerHand.value.reduce((a, b) => a + b.value, 0) < 17) {
+    dealerDrawCard();
+    if (dealerHand.value.reduce((a, b) => a + b.value, 0) >= 17) {
+      if (
+        dealerHand.value.reduce((a, b) => a + b.value, 0) <= 21 &&
+        playerTotalCardValue <= 21
+      ) {
+        dealerHand.value.reduce((a, b) => a + b.value, 0) > playerTotalCardValue
+          ? (playerLost.value = true)
+          : (playerLost.value = false);
+      }
+    }
+  }
+}
+
+function restartGame() {
+  deck.value = [];
+  deckBuilder(deck.value);
+  gameStart();
+}
 </script>
 <template>
-  <!-- <div class="d-flex flex-wrap">
-    <template v-for="card in deck">
-      <div
-        v-if="
-          card.name != 'Jack' &&
-          card.name != 'Queen' &&
-          card.name != 'Ace' &&
-          card.name != 'King' &&
-          card.value != 11
-        "
-      >
-        <img
-          :src="'./cards/' + card.name + '_of_' + card.kind + 's.png'"
-          width="100"
-        />
-      </div>
-      <div
-        v-if="
-          card.name == 'Jack' ||
-          card.name == 'Queen' ||
-          card.name == 'Ace' ||
-          card.name == 'King'
-        "
-      >
-        <img
-          :src="
-            './cards/' + card.name.toLowerCase() + '_of_' + card.kind + 's2.png'
-          "
-          width="100"
-        />
-      </div>
-    </template>
-</div> -->
+  <!-- restart -->
+  <dialog :open="playerLost == true">
+    <p>You Lost</p>
+    <button class="btn btn-primary" @click="restartGame()">Restart</button>
+  </dialog>
+  <dialog :open="dealerHand.reduce((a, b) => a + b.value, 0) > 21">
+    <p>You won</p>
+    <button class="btn btn-primary" @click="restartGame()">Restart</button>
+  </dialog>
+  <button class="btn btn-primary" v-if="!started" @click="gameStart()">
+    start Game
+  </button>
   <button
     class="btn btn-primary position-absolute"
     style="right: 0"
@@ -130,9 +83,27 @@ function dealerDrawCard() {
   >
     Player Draw
   </button>
-  <div class="text-white fs-1 position-absolute" style="top: 20%; left: 48%">
-    {{ dealerHand.reduce((a, b) => a + b.value, 0) }}
+
+  <!-- dealer -->
+  <div
+    class="fs-1 position-absolute"
+    :class="
+      dealerHand.reduce((a, b) => a + b.value, 0) <= 21
+        ? 'text-white'
+        : 'text-danger'
+    "
+    style="top: 25%; left: 48%"
+  >
+    <span v-if="started">{{
+      dealerHand.reduce((a, b) => a + b.value, 0)
+    }}</span>
   </div>
+  <span
+    v-if="started && dealerHand.reduce((a, b) => a + b.value, 0) > 21"
+    class="text-danger fs-2"
+    style="position: absolute; top: 30%; left: 48%"
+    >BUST</span
+  >
   <div class="d-flex flex-wrap position-absolute" style="left: 45%">
     <template v-for="card in dealerHand">
       <div
@@ -166,12 +137,43 @@ function dealerDrawCard() {
       </div>
     </template>
   </div>
-  <div
-    class="text-white fs-1 position-absolute"
-    style="bottom: 20%; left: 48%"
-    :class="{ 'text-danger': playerHand.reduce((a, b) => a + b.value, 0) > 21 }"
+
+  <!-- player -->
+  <span
+    v-if="started && playerHand.reduce((a, b) => a + b.value, 0) > 21"
+    class="text-danger fs-2"
+    style="position: absolute; bottom: 30%; left: 48%"
+    >BUST</span
   >
-    {{ playerHand.reduce((a, b) => a + b.value, 0) }}
+  <button
+    class="btn btn-primary position-absolute"
+    style="bottom: 20%; left: 46%"
+    @click="playerDrawCard()"
+    v-if="started"
+    :disabled="stand"
+  >
+    Hit
+  </button>
+  <button
+    class="btn btn-primary position-absolute"
+    style="bottom: 20%; left: 49%"
+    v-if="started"
+    @click="playerStand()"
+  >
+    Stand
+  </button>
+  <div
+    class="fs-1 position-absolute"
+    style="bottom: 25%; left: 48%"
+    :class="
+      playerHand.reduce((a, b) => a + b.value, 0) <= 21
+        ? 'text-white'
+        : 'text-danger'
+    "
+  >
+    <span v-if="started">{{
+      playerHand.reduce((a, b) => a + b.value, 0)
+    }}</span>
   </div>
   <div class="d-flex flex-wrap position-absolute" style="left: 45%; bottom: 0">
     <template v-for="card in playerHand">
