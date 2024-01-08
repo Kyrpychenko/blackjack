@@ -25,17 +25,27 @@ function dealerDrawCard() {
   deck.value.splice(deck.value.indexOf(specificCard), 1);
 }
 
-function gameStart() {
+async function gameStart() {
   dealerDrawCard();
+  await sleep(200);
   playerDrawCard();
+  await sleep(200);
   dealerDrawCard();
+  await sleep(200);
   playerDrawCard();
   started.value = !started.value;
 }
-
-function playerStand() {
+async function sleep(time: number) {
+  return new Promise<void>((resolve) =>
+    setTimeout(() => {
+      resolve();
+    }, time)
+  );
+}
+async function playerStand() {
   stand.value = true;
   while (dealerHand.value.reduce((a, b) => a + b.value, 0) < 17) {
+    await sleep(400);
     dealerDrawCard();
     if (dealerHand.value.reduce((a, b) => a + b.value, 0) >= 17) {
       if (

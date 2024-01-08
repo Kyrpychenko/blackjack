@@ -21,38 +21,17 @@ export type Card = {
 export type Deck = Card[];
 
 export function deckBuilder(deck: Deck) {
-  for (let i = 2; i < 11; i++) {
-    let card: Card = {
-      kind: "heart",
-      value: i as typeof card.value,
-      name: i.toString() as typeof card.name,
-    };
-    deck.push(card);
+  for (let color of ["heart", "club", "diamond", "spade"] as const) {
+    for (let i = 2; i < 11; i++) {
+      let card: Card = {
+        kind: color,
+        value: i as typeof card.value,
+        name: i.toString() as typeof card.name,
+      };
+      deck.push(card);
+    }
   }
-  for (let i = 2; i < 11; i++) {
-    let card: Card = {
-      kind: "club",
-      value: i as typeof card.value,
-      name: i.toString() as typeof card.name,
-    };
-    deck.push(card);
-  }
-  for (let i = 2; i < 11; i++) {
-    let card: Card = {
-      kind: "diamond",
-      value: i as typeof card.value,
-      name: i.toString() as typeof card.name,
-    };
-    deck.push(card);
-  }
-  for (let i = 2; i < 11; i++) {
-    let card: Card = {
-      kind: "spade",
-      value: i as typeof card.value,
-      name: i.toString() as typeof card.name,
-    };
-    deck.push(card);
-  }
+
   // club special cards
   deck?.push({ kind: "club", value: 10, name: "Queen" });
   deck?.push({ kind: "club", value: 10, name: "Jack" });
@@ -74,13 +53,25 @@ export function deckBuilder(deck: Deck) {
   deck?.push({ kind: "spade", value: 10, name: "King" });
   deck?.push({ kind: "spade", value: 11, name: "Ace" });
 
-  //  shuffle the deck
-  return deck.reduceRight(
-    (p, v, i, a) => (
-      (v = i ? ~~(Math.random() * (i + 1)) : i),
-      v - i ? ([deck[v], a[i]] = [deck[i], deck[v]]) : 0,
-      deck
-    ),
-    deck
-  );
+  return shuffle(deck);
+}
+
+function shuffle(array: Deck) {
+  let currentIndex = array.length,
+    randomIndex;
+
+  // While there remain elements to shuffle.
+  while (currentIndex > 0) {
+    // Pick a remaining element.
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex],
+      array[currentIndex],
+    ];
+  }
+
+  return array;
 }
